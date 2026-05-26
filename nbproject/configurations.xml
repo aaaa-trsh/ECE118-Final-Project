@@ -33,6 +33,9 @@
       <itemPath>TapeEventChecker.h</itemPath>
       <itemPath>../../../../../ECE118/include/ES_EventCheckers.h</itemPath>
       <itemPath>EventCheckers.h</itemPath>
+      <itemPath>AlignSubHSM.h</itemPath>
+      <itemPath>RerouteSubHSM.h</itemPath>
+      <itemPath>TopHSM.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -60,6 +63,9 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
+      <logicalFolder name="f1" displayName="Test" projectFiles="true">
+        <itemPath>pwm.c</itemPath>
+      </logicalFolder>
       <itemPath>AD.c</itemPath>
       <itemPath>BOARD.c</itemPath>
       <itemPath>ES_CheckEvents.c</itemPath>
@@ -72,7 +78,6 @@
       <itemPath>IO_Ports.c</itemPath>
       <itemPath>LED.c</itemPath>
       <itemPath>RC_Servo.c</itemPath>
-      <itemPath>pwm.c</itemPath>
       <itemPath>serial.c</itemPath>
       <itemPath>timers.c</itemPath>
       <itemPath>ES_Main.c</itemPath>
@@ -80,6 +85,9 @@
       <itemPath>TrackwireEventChecker.c</itemPath>
       <itemPath>RobotInterface.c</itemPath>
       <itemPath>TapeEventChecker.c</itemPath>
+      <itemPath>AlignSubHSM.c</itemPath>
+      <itemPath>RerouteSubHSM.c</itemPath>
+      <itemPath>TopHSM.c</itemPath>
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
