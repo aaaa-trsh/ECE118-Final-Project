@@ -5,12 +5,15 @@
 *.sym
 *.obj
 *.o
+*.out
 *.sdb
 *.obj.dmp
 html/
 nbproject/private/
 nbproject/Package-*.bash
 build/
+_build/
+.generated/
 nbbuild/
 dist/
 nbdist/

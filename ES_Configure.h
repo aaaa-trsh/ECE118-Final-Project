@@ -49,6 +49,16 @@
 
     TW_1_DETECTED,
     TW_2_DETECTED,
+    TAPE_ENTER_FR,
+    TAPE_EXIT_FR,
+    TAPE_ENTER_FL,
+    TAPE_EXIT_FL,
+    TAPE_ENTER_R,
+    TAPE_EXIT_R,
+    TAPE_ENTER_SR,
+    TAPE_EXIT_SR,
+    TAPE_ENTER_SL,
+    TAPE_EXIT_SL,
 	/* User-defined events end here */
     NUMBEROFEVENTS,
 } ES_EventTyp_t;
@@ -82,11 +92,11 @@ static const char *EventNames[] = {
 
 /****************************************************************************/
 // This are the name of the Event checking function header file.
-#define EVENT_CHECK_HEADER "TrackwireEventChecker.h"
+#define EVENT_CHECK_HEADER "EventCheckers.h"
 
 /****************************************************************************/
 // This is the list of event checking functions
-#define EVENT_CHECK_LIST CheckWireEvents
+#define EVENT_CHECK_LIST CheckWireEvents, CheckTapeEvents
 
 /****************************************************************************/
 // These are the definitions for the post functions to be executed when the
@@ -95,7 +105,7 @@ static const char *EventNames[] = {
 #define TIMER_UNUSED ((pPostFunc)0)
 #define TIMER0_RESP_FUNC TIMER_UNUSED
 #define TIMER1_RESP_FUNC TIMER_UNUSED
-#define TIMER2_RESP_FUNC PostTapeService
+#define TIMER2_RESP_FUNC TIMER_UNUSED
 #define TIMER3_RESP_FUNC TIMER_UNUSED
 #define TIMER4_RESP_FUNC TIMER_UNUSED
 #define TIMER5_RESP_FUNC TIMER_UNUSED

@@ -29,6 +29,10 @@
       <itemPath>TapeService.h</itemPath>
       <itemPath>TrackwireEventChecker.h</itemPath>
       <itemPath>IOConstants.h</itemPath>
+      <itemPath>RobotInterface.h</itemPath>
+      <itemPath>TapeEventChecker.h</itemPath>
+      <itemPath>../../../../../ECE118/include/ES_EventCheckers.h</itemPath>
+      <itemPath>EventCheckers.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -74,6 +78,8 @@
       <itemPath>ES_Main.c</itemPath>
       <itemPath>TapeService.c</itemPath>
       <itemPath>TrackwireEventChecker.c</itemPath>
+      <itemPath>RobotInterface.c</itemPath>
+      <itemPath>TapeEventChecker.c</itemPath>
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
