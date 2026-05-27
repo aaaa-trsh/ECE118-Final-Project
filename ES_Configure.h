@@ -59,6 +59,12 @@
     TAPE_EXIT_SR,
     TAPE_ENTER_SL,
     TAPE_EXIT_SL,
+
+    // Align HSM
+    BEACON_DETECTED,
+    BOUND_ALIGNED,
+    START_TAPE_FOUND,
+    
 	/* User-defined events end here */
     NUMBEROFEVENTS,
 } ES_EventTyp_t;

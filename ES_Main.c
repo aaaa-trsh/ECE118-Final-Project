@@ -30,11 +30,12 @@ void main(void)
 //            ReadTapeSensorSR()>0
 //        );
         
-          printf("TL: %d, TR: %d\n", 
+        printf("TL: %d, TR: %d\n", // BEACON1: %5d, BEACON2: %5d
             ReadTrackwireSensor1() > 0,
             ReadTrackwireSensor2() > 0
+//            ReadBeaconSensor1(),
+//            ReadBeaconSensor2()
         );
-        
     }
 
     

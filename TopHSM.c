@@ -32,7 +32,7 @@
 //#include "ES_Framework.h"
 //#include "BOARD.h"
 //#include "TopHSM.h"
-////#include "AlignSubHSM.h"
+//#include "AlignSubHSM.h"
 ////#include "ForwardSubHSM.h"
 ////#include "RerouteSubHSM.h"
 ////#include "ShootSubHSM.h"
@@ -48,18 +48,18 @@
 //
 //typedef enum {
 //    Init,
-//    Align,
-//    Forward,
-//    Reroute,
-//    Shoot,
+//    ALIGN,
+//    FORWARD,
+//    REROUTE,
+//    SHOOT,
 //} TopHSMState_t;
 //
 //static const char *StateNames[] = {
 //	"Init",
-//	"Align",
-//    "Forward",
-//    "Reroute",
-//    "Shoot",
+//	"ALIGN",
+//    "FORWARD",
+//    "REROUTE",
+//    "SHOOT",
 //};
 //
 //
@@ -159,14 +159,14 @@
 //        }
 //        break;
 //
-//    case Align: // in the first state, replace this with correct names
+//    case ALIGN: // in the first state, replace this with correct names
 //        // run sub-state machine for this state
 //        //NOTE: the SubState Machine runs and responds to events before anything in the this
 //        //state machine does
 //        ThisEvent = AlignSubHSM(ThisEvent);
 //        switch (ThisEvent.EventType) {
 //        
-//            case Start_Tape_Found:
+//            case START_TAPE_FOUND:
 //                    nextState = Forward;
 //                    makeTransition = TRUE;
 //                    ThisEvent.EventType = ES_NO_EVENT;
@@ -177,7 +177,7 @@
 //        }
 //        break;
 //    
-//    case Forward:
+//    case FORWARD:
 //        ThisEvent = ForwardSubHSM(ThisEvent);
 //        switch (ThisEvent.EventType) {
 //        
@@ -194,7 +194,7 @@
 //        }
 //        break;
 //    
-//    case Reroute:
+//    case REROUTE:
 //        ThisEvent = RerouteSubHSM(ThisEvent);
 //        switch (ThisEvent.EventType) {
 //        
@@ -214,7 +214,7 @@
 //        }
 //        break;
 //    
-//    case Shoot:
+//    case SHOOT:
 //        ThisEvent = ShootSubHSM(ThisEvent);
 //        switch (ThisEvent.EventType) {
 //        case ES_NO_EVENT:

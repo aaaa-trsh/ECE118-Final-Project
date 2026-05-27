@@ -1,3 +1,5 @@
+#include <xc.h>
+
 #ifndef _ROBOT_INTERFACE_H    /* Guard against multiple inclusion */
 #define _ROBOT_INTERFACE_H
 
@@ -8,7 +10,7 @@
         @param fwd      -128: back     127: fwd
         @param strafe   -128: left     127: right
      */
-    void MecanumDrive(int8_t fwd, int8_t strafe);
+    void MecanumDrive(int8_t fwd, int8_t strafe, int8_t rot);
     
     /**
       @Parameters

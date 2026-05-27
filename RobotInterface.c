@@ -1,4 +1,3 @@
-
 #include <xc.h>
 #include "IO_Ports.h"
 #include "pwm.h"
@@ -79,29 +78,26 @@ void _SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed) {
     uint8_t absspd = speed < 0 ? -speed : speed;
     uint8_t unispd = (absspd > 127) ? 127 : absspd;
     PWM_SetDutyCycle(driveConsts.pwm, (MAX_PWM * unispd) / 127);
-//    printf("%d", (MAX_PWM * unispd) / 127);
 }
 
-void MecanumDrive(int8_t fwd, int8_t strafe)
+void MecanumDrive(int8_t fwd, int8_t strafe, int8_t rot)
 {
-    int16_t afwd    = (fwd < 0) ? -(int16_t)fwd : fwd;
+    int16_t afwd    = (fwd    < 0) ? -(int16_t)fwd    : fwd;
     int16_t astrafe = (strafe < 0) ? -(int16_t)strafe : strafe;
+    int16_t arot    = (rot    < 0) ? -(int16_t)rot    : rot;
 
-    int16_t sum = afwd + astrafe;
+    int16_t sum  = afwd + astrafe + arot;
     int16_t norm = (sum > 127) ? sum : 127;
 
-    int16_t fl_rr = ((int16_t)(fwd + strafe) * 127) / norm;
-    int16_t fr_rl = ((int16_t)(fwd - strafe) * 127) / norm;
+    int16_t fl = ((int16_t)(fwd + strafe + rot) * 127) / norm;
+    int16_t fr = ((int16_t)(fwd - strafe - rot) * 127) / norm;
+    int16_t rl = ((int16_t)(fwd - strafe + rot) * 127) / norm;
+    int16_t rr = ((int16_t)(fwd + strafe - rot) * 127) / norm;
 
-//    printf("FL: ");
-    _SetDriveMotor(DRIVE_FRONT_LEFT, (int8_t)fl_rr);
-//    printf("  RR: ");
-    _SetDriveMotor(DRIVE_REAR_RIGHT, (int8_t)fl_rr);
-//    printf("  FR: ");
-    _SetDriveMotor(DRIVE_FRONT_RIGHT, (int8_t)fr_rl);
-//    printf("  RL: ");
-    _SetDriveMotor(DRIVE_REAR_LEFT, (int8_t)fr_rl);
-//    printf("\n");
+    _SetDriveMotor(DRIVE_FRONT_LEFT,  (int8_t)fl);
+    _SetDriveMotor(DRIVE_FRONT_RIGHT, (int8_t)fr);
+    _SetDriveMotor(DRIVE_REAR_LEFT,   (int8_t)rl);
+    _SetDriveMotor(DRIVE_REAR_RIGHT,  (int8_t)rr);
 }
 
 void SetShooter(uint8_t enabled, uint8_t distance) {

@@ -4,34 +4,35 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <itemPath>AD.h</itemPath>
-      <itemPath>BOARD.h</itemPath>
-      <itemPath>ES_CheckEvents.h</itemPath>
+      <logicalFolder name="f1" displayName="_Framework" projectFiles="true">
+        <itemPath>BOARD.h</itemPath>
+        <itemPath>ES_CheckEvents.h</itemPath>
+        <itemPath>AD.h</itemPath>
+        <itemPath>ES_Events.h</itemPath>
+        <itemPath>ES_General.h</itemPath>
+        <itemPath>ES_Framework.h</itemPath>
+        <itemPath>ES_KeyboardInput.h</itemPath>
+        <itemPath>ES_LookupTables.h</itemPath>
+        <itemPath>ES_Port.h</itemPath>
+        <itemPath>ES_PostList.h</itemPath>
+        <itemPath>ES_PriorTables.h</itemPath>
+        <itemPath>ES_Queue.h</itemPath>
+        <itemPath>ES_ServiceHeaders.h</itemPath>
+        <itemPath>ES_TattleTale.h</itemPath>
+        <itemPath>ES_Timers.h</itemPath>
+        <itemPath>IO_Ports.h</itemPath>
+        <itemPath>LED.h</itemPath>
+        <itemPath>pwm.h</itemPath>
+        <itemPath>RC_Servo.h</itemPath>
+        <itemPath>serial.h</itemPath>
+        <itemPath>timers.h</itemPath>
+      </logicalFolder>
       <itemPath>ES_Configure.h</itemPath>
-      <itemPath>ES_Events.h</itemPath>
-      <itemPath>ES_Framework.h</itemPath>
-      <itemPath>ES_General.h</itemPath>
-      <itemPath>ES_KeyboardInput.h</itemPath>
-      <itemPath>ES_LookupTables.h</itemPath>
-      <itemPath>ES_Port.h</itemPath>
-      <itemPath>ES_PostList.h</itemPath>
-      <itemPath>ES_PriorTables.h</itemPath>
-      <itemPath>ES_Queue.h</itemPath>
-      <itemPath>ES_ServiceHeaders.h</itemPath>
-      <itemPath>ES_TattleTale.h</itemPath>
-      <itemPath>ES_Timers.h</itemPath>
-      <itemPath>IO_Ports.h</itemPath>
-      <itemPath>LED.h</itemPath>
-      <itemPath>RC_Servo.h</itemPath>
-      <itemPath>pwm.h</itemPath>
-      <itemPath>serial.h</itemPath>
-      <itemPath>timers.h</itemPath>
       <itemPath>TapeService.h</itemPath>
       <itemPath>TrackwireEventChecker.h</itemPath>
       <itemPath>IOConstants.h</itemPath>
       <itemPath>RobotInterface.h</itemPath>
       <itemPath>TapeEventChecker.h</itemPath>
-      <itemPath>../../../../../ECE118/include/ES_EventCheckers.h</itemPath>
       <itemPath>EventCheckers.h</itemPath>
       <itemPath>AlignSubHSM.h</itemPath>
       <itemPath>RerouteSubHSM.h</itemPath>
@@ -63,24 +64,24 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <logicalFolder name="f1" displayName="Test" projectFiles="true">
+      <logicalFolder name="f1" displayName="_Framework" projectFiles="true">
         <itemPath>pwm.c</itemPath>
+        <itemPath>AD.c</itemPath>
+        <itemPath>BOARD.c</itemPath>
+        <itemPath>ES_CheckEvents.c</itemPath>
+        <itemPath>ES_Framework.c</itemPath>
+        <itemPath>ES_KeyboardInput.c</itemPath>
+        <itemPath>ES_Main.c</itemPath>
+        <itemPath>ES_PostList.c</itemPath>
+        <itemPath>ES_Queue.c</itemPath>
+        <itemPath>ES_TattleTale.c</itemPath>
+        <itemPath>ES_Timers.c</itemPath>
+        <itemPath>IO_Ports.c</itemPath>
+        <itemPath>LED.c</itemPath>
+        <itemPath>serial.c</itemPath>
+        <itemPath>timers.c</itemPath>
       </logicalFolder>
-      <itemPath>AD.c</itemPath>
-      <itemPath>BOARD.c</itemPath>
-      <itemPath>ES_CheckEvents.c</itemPath>
-      <itemPath>ES_Framework.c</itemPath>
-      <itemPath>ES_KeyboardInput.c</itemPath>
-      <itemPath>ES_PostList.c</itemPath>
-      <itemPath>ES_Queue.c</itemPath>
-      <itemPath>ES_TattleTale.c</itemPath>
-      <itemPath>ES_Timers.c</itemPath>
-      <itemPath>IO_Ports.c</itemPath>
-      <itemPath>LED.c</itemPath>
       <itemPath>RC_Servo.c</itemPath>
-      <itemPath>serial.c</itemPath>
-      <itemPath>timers.c</itemPath>
-      <itemPath>ES_Main.c</itemPath>
       <itemPath>TapeService.c</itemPath>
       <itemPath>TrackwireEventChecker.c</itemPath>
       <itemPath>RobotInterface.c</itemPath>
