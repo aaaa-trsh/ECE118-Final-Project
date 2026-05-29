@@ -23,13 +23,10 @@
         <itemPath>IO_Ports.h</itemPath>
         <itemPath>LED.h</itemPath>
         <itemPath>pwm.h</itemPath>
-        <itemPath>RC_Servo.h</itemPath>
         <itemPath>serial.h</itemPath>
         <itemPath>timers.h</itemPath>
       </logicalFolder>
       <itemPath>ES_Configure.h</itemPath>
-      <itemPath>TapeService.h</itemPath>
-      <itemPath>TrackwireEventChecker.h</itemPath>
       <itemPath>IOConstants.h</itemPath>
       <itemPath>RobotInterface.h</itemPath>
       <itemPath>TapeEventChecker.h</itemPath>
@@ -37,6 +34,7 @@
       <itemPath>AlignSubHSM.h</itemPath>
       <itemPath>RerouteSubHSM.h</itemPath>
       <itemPath>TopHSM.h</itemPath>
+      <itemPath>ObstacleEventChecker.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -81,14 +79,13 @@
         <itemPath>serial.c</itemPath>
         <itemPath>timers.c</itemPath>
       </logicalFolder>
-      <itemPath>RC_Servo.c</itemPath>
-      <itemPath>TapeService.c</itemPath>
-      <itemPath>TrackwireEventChecker.c</itemPath>
       <itemPath>RobotInterface.c</itemPath>
       <itemPath>TapeEventChecker.c</itemPath>
       <itemPath>AlignSubHSM.c</itemPath>
       <itemPath>RerouteSubHSM.c</itemPath>
       <itemPath>TopHSM.c</itemPath>
+      <itemPath>ObstacleEventChecker.c</itemPath>
+      <itemPath>IOConstants.c</itemPath>
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
@@ -789,38 +786,6 @@
                   value=""/>
         <property key="warningmessagebreakoptions.warningmessages" value="holdstate"/>
       </Simulator>
-      <item path="TapeService.c" ex="false" overriding="false">
-        <C32>
-        </C32>
-        <C32-AR>
-        </C32-AR>
-        <C32-AS>
-        </C32-AS>
-        <C32-CO>
-        </C32-CO>
-        <C32-LD>
-        </C32-LD>
-        <C32CPP>
-        </C32CPP>
-        <C32Global>
-        </C32Global>
-      </item>
-      <item path="TapeService.h" ex="false" overriding="false">
-        <C32>
-        </C32>
-        <C32-AR>
-        </C32-AR>
-        <C32-AS>
-        </C32-AS>
-        <C32-CO>
-        </C32-CO>
-        <C32-LD>
-        </C32-LD>
-        <C32CPP>
-        </C32CPP>
-        <C32Global>
-        </C32Global>
-      </item>
       <Tool>
         <property key="codecoverage.enabled" value="Disable"/>
         <property key="codecoverage.enableoutputtofile" value="false"/>

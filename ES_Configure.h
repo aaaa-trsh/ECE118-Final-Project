@@ -102,7 +102,7 @@ static const char *EventNames[] = {
 
 /****************************************************************************/
 // This is the list of event checking functions
-#define EVENT_CHECK_LIST CheckWireEvents, CheckTapeEvents
+#define EVENT_CHECK_LIST CheckObstacleEvents, CheckTapeEvents
 
 /****************************************************************************/
 // These are the definitions for the post functions to be executed when the
@@ -110,7 +110,7 @@ static const char *EventNames[] = {
 // a timers, then you can use TIMER_UNUSED
 #define TIMER_UNUSED ((pPostFunc)0)
 #define TIMER0_RESP_FUNC TIMER_UNUSED
-#define TIMER1_RESP_FUNC TIMER_UNUSED
+#define TIMER1_RESP_FUNC PostTopHSM
 #define TIMER2_RESP_FUNC TIMER_UNUSED
 #define TIMER3_RESP_FUNC TIMER_UNUSED
 #define TIMER4_RESP_FUNC TIMER_UNUSED
@@ -165,11 +165,11 @@ static const char *EventNames[] = {
 // These are the definitions for Service 1
 #if NUM_SERVICES > 1
 // the header file with the public function prototypes
-#define SERV_1_HEADER "TapeService.h"
+#define SERV_1_HEADER "TopHSM.h"
 // the name of the Init function
-#define SERV_1_INIT InitTapeService
+#define SERV_1_INIT InitTopHSM
 // the name of the run function
-#define SERV_1_RUN RunTapeService
+#define SERV_1_RUN RunTopHSM
 // How big should this services Queue be?
 #define SERV_1_QUEUE_SIZE 3
 #endif

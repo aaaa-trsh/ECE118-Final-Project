@@ -1,5 +1,5 @@
 #include "ES_Configure.h"
-#include "TrackwireEventChecker.h"
+#include "ObstacleEventChecker.h"
 #include "ES_Events.h"
 #include "serial.h"
 #include "AD.h"
@@ -12,7 +12,7 @@
 /*******************************************************************************
  * MODULE #DEFINES                                                             *
  ******************************************************************************/
-#define TRACK_VERBOSE
+//#define TRACK_VERBOSE
 /*******************************************************************************
  * PRIVATE FUNCTION PROTOTYPES                                                 *
  ******************************************************************************/
@@ -39,36 +39,40 @@
  *        The function will post either TW_1_DETECTED or TW_2_DETECTED.
  *        Returns TRUE if there was an event, FALSE otherwise.
  */
-;uint8_t CheckWireEvents(void) {
+;uint8_t CheckObstacleEvents(void) {
     // Initialize track wire ports
-    static uint8_t wire1_ref = 0;
-    static uint8_t wire2_ref = 0;
+    static uint8_t obs1_ref = 0;
+    static uint8_t obs2_ref = 0;
     
-    uint8_t wire1 = ReadTrackwireSensor1();
-    uint8_t wire2 = ReadTrackwireSensor2();
+    uint8_t obs1 = ReadObstacleSensor1();
+    uint8_t obs2 = ReadObstacleSensor2();
     
     uint8_t returnVal = FALSE;
 
-    if (wire1 != wire1_ref && wire1) {
-        ES_Event wire1Event;
-        wire1Event.EventType = TW_1_DETECTED;        
+    if (obs1 != obs1_ref && obs1) {
+        ES_Event obs1Event;
+        obs1Event.EventType = TW_1_DETECTED;        
 #ifdef TRACK_VERBOSE
-        printf("TRACKWIRE 1 TRIPPED");
+        printf("OBSTACLE 1 TRIPPED\n");
 #endif
         returnVal = TRUE;
+    } else if (obs1 != obs1_ref && !obs1) {
+        printf("OBSTACLE 1 UNTRIPPED\n");
     }
     
-    if (wire2 != wire2_ref && wire2) {
-        ES_Event wire2Event;
-        wire2Event.EventType = TW_2_DETECTED;        
+    if (obs2 != obs2_ref && obs2) {
+        ES_Event obs2Event;
+        obs2Event.EventType = TW_2_DETECTED;        
 #ifdef TRACK_VERBOSE
-        printf("TRACKWIRE 2 TRIPPED");
+        printf("OBSTACLE 2 TRIPPED\n");
 #endif
         returnVal = TRUE;
+    } else if (obs2 != obs2_ref && !obs2) {
+        printf("OBSTACLE 2 UNTRIPPED\n");
     }
     
-    wire1_ref = wire1;
-    wire2_ref = wire2;
+    obs1_ref = obs1;
+    obs2_ref = obs2;
     
     return (returnVal);
 }

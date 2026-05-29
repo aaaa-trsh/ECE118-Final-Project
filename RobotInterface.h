@@ -1,4 +1,5 @@
 #include <xc.h>
+#include "IOConstants.h"
 
 #ifndef _ROBOT_INTERFACE_H    /* Guard against multiple inclusion */
 #define _ROBOT_INTERFACE_H
@@ -11,6 +12,7 @@
         @param strafe   -128: left     127: right
      */
     void MecanumDrive(int8_t fwd, int8_t strafe, int8_t rot);
+    uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed);
     
     /**
       @Parameters
@@ -31,8 +33,8 @@
     uint16_t ReadBeaconSensor1(void);
     uint16_t ReadBeaconSensor2(void);
     
-    uint16_t ReadTrackwireSensor1(void);
-    uint16_t ReadTrackwireSensor2(void);
+    uint16_t ReadObstacleSensor1(void);
+    uint16_t ReadObstacleSensor2(void);
 
 #ifdef __cplusplus
 }

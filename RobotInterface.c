@@ -6,7 +6,7 @@
 #include "RobotInterface.h"
 #include <stdio.h>
 
-void _SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed);
+//uint16_t _SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed);
 
 void InitRobot(void) {
     PWM_Init();
@@ -44,20 +44,20 @@ void InitRobot(void) {
     IO_PortsSetPortInputs(PORTW, TAPE_PORT_W_PINS);
     
     // Initialize trackwires
-    IO_PortsSetPortInputs(TRACKWIRE_1_PORT, TRACKWIRE_1_PIN);
-    IO_PortsSetPortInputs(TRACKWIRE_2_PORT, TRACKWIRE_2_PIN);
+    IO_PortsSetPortInputs(OBSTACLE_1_PORT, OBSTACLE_1_PIN);
+    IO_PortsSetPortInputs(OBSTACLE_2_PORT, OBSTACLE_2_PIN);
     
     SetShooter(0, 0);
     SetIndexer(0);
 }
 
-void _SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed) {
+uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed) {
     if (speed == 0) {
         IO_PortsSetPortBits(driveConsts.port, driveConsts.in1);
         IO_PortsSetPortBits(driveConsts.port, driveConsts.in2);
         PWM_SetDutyCycle(driveConsts.pwm, MIN_PWM);
-        printf("zero", driveConsts.pwm);
-        return;
+//        printf("zero", driveConsts.pwm);
+        return 0;
     }
     
     uint8_t direction = speed > 0;
@@ -75,9 +75,13 @@ void _SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed) {
     }
     
     // translate speed to be unsigned 0 - 127
-    uint8_t absspd = speed < 0 ? -speed : speed;
-    uint8_t unispd = (absspd > 127) ? 127 : absspd;
-    PWM_SetDutyCycle(driveConsts.pwm, (MAX_PWM * unispd) / 127);
+    uint16_t absspd = speed < 0 ? -speed : speed;
+    uint16_t unispd = (absspd > 127) ? 127 : absspd;
+    uint16_t retval = (MAX_PWM * unispd) / 127;
+    
+    PWM_SetDutyCycle(driveConsts.pwm, retval);
+    
+    return retval;
 }
 
 void MecanumDrive(int8_t fwd, int8_t strafe, int8_t rot)
@@ -93,11 +97,13 @@ void MecanumDrive(int8_t fwd, int8_t strafe, int8_t rot)
     int16_t fr = ((int16_t)(fwd - strafe - rot) * 127) / norm;
     int16_t rl = ((int16_t)(fwd - strafe + rot) * 127) / norm;
     int16_t rr = ((int16_t)(fwd + strafe - rot) * 127) / norm;
-
-    _SetDriveMotor(DRIVE_FRONT_LEFT,  (int8_t)fl);
-    _SetDriveMotor(DRIVE_FRONT_RIGHT, (int8_t)fr);
-    _SetDriveMotor(DRIVE_REAR_LEFT,   (int8_t)rl);
-    _SetDriveMotor(DRIVE_REAR_RIGHT,  (int8_t)rr);
+    
+//    printf("Set motor speeds -- FL:%5d FR:%5d RL:%5d RR:%5d\n", 
+//        SetDriveMotor(DRIVE_FRONT_LEFT,  (int8_t)fl),
+//        SetDriveMotor(DRIVE_FRONT_RIGHT, (int8_t)fr), 
+//        SetDriveMotor(DRIVE_REAR_LEFT,   (int8_t)rl), 
+//        SetDriveMotor(DRIVE_REAR_RIGHT,  (int8_t)rr)
+//    );
 }
 
 void SetShooter(uint8_t enabled, uint8_t distance) {
@@ -124,14 +130,14 @@ void SetIndexer(uint8_t enabled) {
     }
 }
 
-uint8_t ReadTapeSensorFR(void) { return (IO_PortsReadPort(PORTV) & PIN3) > 0; }
-uint8_t ReadTapeSensorR(void)  { return (IO_PortsReadPort(PORTV) & PIN5) > 0; }
-uint8_t ReadTapeSensorFL(void) { return (IO_PortsReadPort(PORTV) & PIN7) > 0; }
-uint8_t ReadTapeSensorSL(void) { return (IO_PortsReadPort(PORTW) & PIN3) > 0; }
-uint8_t ReadTapeSensorSR(void) { return (IO_PortsReadPort(PORTW) & PIN5) > 0; }
+uint8_t ReadTapeSensorFR(void) { return (IO_PortsReadPort(PORTV) & PIN3) == 0; }
+uint8_t ReadTapeSensorR(void)  { return (IO_PortsReadPort(PORTV) & PIN5) == 0; }
+uint8_t ReadTapeSensorFL(void) { return (IO_PortsReadPort(PORTV) & PIN7) == 0; }
+uint8_t ReadTapeSensorSL(void) { return (IO_PortsReadPort(PORTW) & PIN3) == 0; }
+uint8_t ReadTapeSensorSR(void) { return (IO_PortsReadPort(PORTW) & PIN5) == 0; }
 
 uint16_t ReadBeaconSensor1(void) { return AD_ReadADPin(AD_BEACON_1); }
 uint16_t ReadBeaconSensor2(void) { return AD_ReadADPin(AD_BEACON_2); }
 
-uint16_t ReadTrackwireSensor1(void) { return (IO_PortsReadPort(TRACKWIRE_1_PORT) & TRACKWIRE_1_PIN) > 0; }
-uint16_t ReadTrackwireSensor2(void) { return (IO_PortsReadPort(TRACKWIRE_2_PORT) & TRACKWIRE_2_PIN) > 0; }
+uint16_t ReadObstacleSensor1(void) { return (IO_PortsReadPort(OBSTACLE_1_PORT) & OBSTACLE_1_PIN) == 0; }
+uint16_t ReadObstacleSensor2(void) { return (IO_PortsReadPort(OBSTACLE_2_PORT) & OBSTACLE_2_PIN) == 0; }

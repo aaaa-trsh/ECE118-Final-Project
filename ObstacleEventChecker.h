@@ -1,5 +1,5 @@
-#ifndef TRACKWIRE_EVENT_CHECKER    /* Guard against multiple inclusion */
-#define TRACKWIRE_EVENT_CHECKER
+#ifndef OBS_EVENT_CHECKER    /* Guard against multiple inclusion */
+#define OBS_EVENT_CHECKER
 
 #include <xc.h>
 
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
     
-    uint8_t CheckWireEvents(void);
+    uint8_t CheckObstacleEvents(void);
 
 #ifdef __cplusplus
 }

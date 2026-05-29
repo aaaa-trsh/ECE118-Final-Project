@@ -3,6 +3,6 @@
 #define EVENT_CHECKERS_H
 
 #include "TapeEventChecker.h"
-#include "TrackwireEventChecker.h"
+#include "ObstacleEventChecker.h"
 
 #endif /* EVENT_CHECKERS_H*/
