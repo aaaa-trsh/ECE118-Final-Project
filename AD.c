@@ -33,8 +33,8 @@
 #define BAT_VOLTAGE_MONITOR BAT_VOLTAGE
 #endif
 
-#define BAT_VOLTAGE_LOCKOUT 263
-#define BAT_VOLTAGE_NO_BAT 169
+#define BAT_VOLTAGE_LOCKOUT 219
+#define BAT_VOLTAGE_NO_BAT 140
 
 //#define AD_DEBUG_VERBOSE
 #ifdef AD_DEBUG_VERBOSE
@@ -395,7 +395,7 @@ void __ISR(_ADC_VECTOR, IPL1SOFT) ADCIntHandler(void)
         if ((CurFilt_BatVoltage <= BAT_VOLTAGE_LOCKOUT) && (PrevFilt_BatVoltage <= BAT_VOLTAGE_LOCKOUT) && (AD_ReadADPin(BAT_VOLTAGE_MONITOR) > BAT_VOLTAGE_NO_BAT)) {
             BOARD_End();
             while (1) {
-                printf("Battery is undervoltage with reading %d, Going to sleep\r\n", AD_ReadADPin(BAT_VOLTAGE_MONITOR));
+//                printf("Battery is undervoltage with reading %d, Going to sleep\r\n", AD_ReadADPin(BAT_VOLTAGE_MONITOR));
                 while (!IsTransmitEmpty());
             }
         }

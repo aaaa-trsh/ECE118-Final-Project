@@ -11,8 +11,9 @@
         @param fwd      -128: back     127: fwd
         @param strafe   -128: left     127: right
      */
-    void MecanumDrive(int8_t fwd, int8_t strafe, int8_t rot);
-    uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed);
+    void TankDrive(int16_t left, int16_t right);
+    void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot);
+    uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int16_t speed);
     
     /**
       @Parameters
@@ -30,8 +31,8 @@
     uint8_t ReadTapeSensorSR(void);
     uint8_t ReadTapeSensorR(void);
 
-    uint16_t ReadBeaconSensor1(void);
-    uint16_t ReadBeaconSensor2(void);
+    double ReadBeaconSensor1(void);
+    double ReadBeaconSensor2(void);
     
     uint16_t ReadObstacleSensor1(void);
     uint16_t ReadObstacleSensor2(void);

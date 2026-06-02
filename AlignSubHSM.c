@@ -41,15 +41,15 @@
 ******************************************************************************/
 
 // FIND BEACON parameters
-#define FIND_BEACON_THRESH 700
-#define FIND_BEACON_SPEED 70
+#define FIND_BEACON_THRESH 2
+#define FIND_BEACON_SPEED 800
 
 // FIND BOUND state tracking
 int8_t bound_dir = -1;
 uint8_t hit_bound_tape = 0;
 uint16_t find_bound_dur = 1000;
 // FIND BOUND parameters
-#define FIND_BOUND_SPEED 50
+#define FIND_BOUND_SPEED 750
 #define FIND_BOUND_DUR_INC 500
 
 // ALIGN TAPES state tracking
@@ -141,7 +141,9 @@ ES_Event RunAlignSubHSM(ES_Event ThisEvent)
     uint8_t makeTransition = FALSE; // use to flag transition
     AlignSubHSMState_t nextState; // <- change type to correct enum
 
-    ES_Tattle(); // trace call stack
+//    ES_Tattle(); // trace call stack
+//    printf(".\n");
+//    printf("Find Beacon.. B1=%5f, B2=%5f\n", ReadBeaconSensor1(), ReadBeaconSensor2());
 
     switch (CurrentState) {
     case Init: // If current state is initial Psedudo State
@@ -160,30 +162,22 @@ ES_Event RunAlignSubHSM(ES_Event ThisEvent)
         break;
 
     case FIND_SOUTH: // spin robot until beacon found
-        if (ReadBeaconSensor1() > FIND_BEACON_THRESH || ReadBeaconSensor2() > FIND_BEACON_THRESH) {
+        if (ReadBeaconSensor1() > FIND_BEACON_THRESH) {
             MecanumDrive(0, 0, 0);
-            ThisEvent.EventType = BEACON_DETECTED;
-            PostTopHSM(ThisEvent);
+            nextState = FIND_BOUND;
+            makeTransition = TRUE;
+            ThisEvent.EventType = ES_NO_EVENT;
+            InitFindBoundTape();
             printf("Beacon Detected!\n");
         } else {
-            printf("Find Beacon..\n");
-            MecanumDrive(0, 0, FIND_BEACON_SPEED);
-        }
-
-        switch (ThisEvent.EventType) {
-            case BEACON_DETECTED:
-                nextState = FIND_BOUND;
-                makeTransition = TRUE;
-                ThisEvent.EventType = ES_NO_EVENT;
-                InitFindBoundTape();
-                break;
-            default: // all unhandled events pass the event back up to the next level
-                break;
+            MecanumDrive(0, 0, -FIND_BEACON_SPEED);
         }
         break;
 
-    case FIND_BOUND: //move back and forth to find boundary line
+    case FIND_BOUND: //move back and forth for increasingly long amounts of time to find boundary line
+//        MecanumDrive(0, 0, 0);
         MecanumDrive(bound_dir * FIND_BOUND_SPEED, 0, 0);
+        printf("FIND_BOUND");
         switch (ThisEvent.EventType) {
             case TAPE_ENTER_FR:
             case TAPE_ENTER_FL:
@@ -202,7 +196,11 @@ ES_Event RunAlignSubHSM(ES_Event ThisEvent)
                 break;  
         }
         break;
-    case ALIGN_BOUND: // align front sensors with out of bounds line
+    case ALIGN_BOUND: // align front sensors with out of bounds line 
+//        // first, the robot steps back, then approaches the tape
+//        // if a tape sensor is tripped, its corresponding side stops moving
+//        MecanumDrive(0, 0, 0);
+
         switch (ThisEvent.EventType) {
             case ES_TIMEOUT:
                 MecanumDrive(0, 0, 0);
@@ -236,7 +234,11 @@ ES_Event RunAlignSubHSM(ES_Event ThisEvent)
                 break;
         }
         break;
-//    
+        case FIND_START_TAPE:
+            MecanumDrive(0, 0, 0);
+            printf("Made it !!\n");
+            break;
+        //    
     default: // all unhandled states fall into here
         break;
     } // end switch on Current State
@@ -248,7 +250,7 @@ ES_Event RunAlignSubHSM(ES_Event ThisEvent)
         RunAlignSubHSM(ENTRY_EVENT); // <- rename to your own Run function
     }
 
-    ES_Tail(); // trace call stack end
+//    ES_Tail(); // trace call stack end
     return ThisEvent;
 }
 

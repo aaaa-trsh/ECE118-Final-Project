@@ -170,9 +170,9 @@ ES_Event RunTopHSM(ES_Event ThisEvent)
         ThisEvent = RunAlignSubHSM(ThisEvent);
         switch (ThisEvent.EventType) {
             case START_TAPE_FOUND:
-                nextState = FORWARD;
-                makeTransition = TRUE;
-                ThisEvent.EventType = ES_NO_EVENT;
+//                nextState = FORWARD;
+//                makeTransition = TRUE;
+//                ThisEvent.EventType = ES_NO_EVENT;
                 break;
             default:
                 break;

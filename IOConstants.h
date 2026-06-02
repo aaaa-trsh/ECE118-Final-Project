@@ -26,6 +26,7 @@ typedef struct driveMotorConsts {
     uint16_t in1;
     uint16_t in2;
     uint8_t invert;
+    double multiplier;
 } DriveMotorIOConstants;
 
 extern DriveMotorIOConstants DRIVE_REAR_LEFT;

@@ -51,12 +51,11 @@ void InitRobot(void) {
     SetIndexer(0);
 }
 
-uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed) {
+uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int16_t speed) {
     if (speed == 0) {
         IO_PortsSetPortBits(driveConsts.port, driveConsts.in1);
         IO_PortsSetPortBits(driveConsts.port, driveConsts.in2);
         PWM_SetDutyCycle(driveConsts.pwm, MIN_PWM);
-//        printf("zero", driveConsts.pwm);
         return 0;
     }
     
@@ -65,45 +64,47 @@ uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed) {
         direction = !direction;
     }
     
-    // TODO: Finish this :)
     if (direction) {
-        IO_PortsSetPortBits(driveConsts.port, driveConsts.in1);
-        IO_PortsClearPortBits(driveConsts.port, driveConsts.in2);
-    } else {
         IO_PortsClearPortBits(driveConsts.port, driveConsts.in1);
         IO_PortsSetPortBits(driveConsts.port, driveConsts.in2);
+    } else {
+        IO_PortsSetPortBits(driveConsts.port, driveConsts.in1);
+        IO_PortsClearPortBits(driveConsts.port, driveConsts.in2);
     }
     
     // translate speed to be unsigned 0 - 127
-    uint16_t absspd = speed < 0 ? -speed : speed;
-    uint16_t unispd = (absspd > 127) ? 127 : absspd;
-    uint16_t retval = (MAX_PWM * unispd) / 127;
+    uint16_t absspd = (uint16_t)(((double)(speed < 0 ? -speed : speed)) * driveConsts.multiplier);
+    uint16_t unispd = (absspd > 1000) ? 1000 : absspd;
     
-    PWM_SetDutyCycle(driveConsts.pwm, retval);
-    
-    return retval;
+    PWM_SetDutyCycle(driveConsts.pwm, unispd);
+//    printf("%d", unispd);
+    return unispd;
 }
 
-void MecanumDrive(int8_t fwd, int8_t strafe, int8_t rot)
-{
+void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot) {
     int16_t afwd    = (fwd    < 0) ? -(int16_t)fwd    : fwd;
     int16_t astrafe = (strafe < 0) ? -(int16_t)strafe : strafe;
     int16_t arot    = (rot    < 0) ? -(int16_t)rot    : rot;
 
     int16_t sum  = afwd + astrafe + arot;
-    int16_t norm = (sum > 127) ? sum : 127;
+    int16_t norm = (sum > 1000) ? sum : 1000;
 
-    int16_t fl = ((int16_t)(fwd + strafe + rot) * 127) / norm;
-    int16_t fr = ((int16_t)(fwd - strafe - rot) * 127) / norm;
-    int16_t rl = ((int16_t)(fwd - strafe + rot) * 127) / norm;
-    int16_t rr = ((int16_t)(fwd + strafe - rot) * 127) / norm;
-    
-//    printf("Set motor speeds -- FL:%5d FR:%5d RL:%5d RR:%5d\n", 
-//        SetDriveMotor(DRIVE_FRONT_LEFT,  (int8_t)fl),
-//        SetDriveMotor(DRIVE_FRONT_RIGHT, (int8_t)fr), 
-//        SetDriveMotor(DRIVE_REAR_LEFT,   (int8_t)rl), 
-//        SetDriveMotor(DRIVE_REAR_RIGHT,  (int8_t)rr)
-//    );
+    int16_t fl = ((int16_t)(fwd + strafe + rot) * 1000) / norm;
+    int16_t fr = ((int16_t)(fwd - strafe - rot) * 1000) / norm;
+    int16_t rl = ((int16_t)(fwd - strafe + rot) * 1000) / norm;
+    int16_t rr = ((int16_t)(fwd + strafe - rot) * 1000) / norm;
+
+    SetDriveMotor(DRIVE_FRONT_LEFT,  fl);
+    SetDriveMotor(DRIVE_FRONT_RIGHT, fr); 
+    SetDriveMotor(DRIVE_REAR_LEFT,   rl);
+    SetDriveMotor(DRIVE_REAR_RIGHT,  rr);
+}
+
+void TankDrive(int16_t left, int16_t right) {
+    SetDriveMotor(DRIVE_FRONT_LEFT,  left);
+    SetDriveMotor(DRIVE_REAR_LEFT,   left);
+    SetDriveMotor(DRIVE_FRONT_RIGHT, right); 
+    SetDriveMotor(DRIVE_REAR_RIGHT,  right);
 }
 
 void SetShooter(uint8_t enabled, uint8_t distance) {
@@ -136,8 +137,8 @@ uint8_t ReadTapeSensorFL(void) { return (IO_PortsReadPort(PORTV) & PIN7) == 0; }
 uint8_t ReadTapeSensorSL(void) { return (IO_PortsReadPort(PORTW) & PIN3) == 0; }
 uint8_t ReadTapeSensorSR(void) { return (IO_PortsReadPort(PORTW) & PIN5) == 0; }
 
-uint16_t ReadBeaconSensor1(void) { return AD_ReadADPin(AD_BEACON_1); }
-uint16_t ReadBeaconSensor2(void) { return AD_ReadADPin(AD_BEACON_2); }
+double ReadBeaconSensor1(void) { return ((double)AD_ReadADPin(AD_BEACON_1)) * 0.00322265625; }
+double ReadBeaconSensor2(void) { return ((double)AD_ReadADPin(AD_BEACON_2)) * 0.00322265625; }
 
 uint16_t ReadObstacleSensor1(void) { return (IO_PortsReadPort(OBSTACLE_1_PORT) & OBSTACLE_1_PIN) == 0; }
 uint16_t ReadObstacleSensor2(void) { return (IO_PortsReadPort(OBSTACLE_2_PORT) & OBSTACLE_2_PIN) == 0; }
