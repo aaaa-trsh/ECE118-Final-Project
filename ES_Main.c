@@ -24,7 +24,9 @@ int GetTailExitEvent(int tape_r);
 #define CORNER_ALIGN_RATE_PER_MS 0.6 // counts per millisecond
 
 #define TURN_180_DUR 1500
+
 #define DO_STATE_MACHINE
+//#define DO_TEST_HARNESS
 
 void main(void)
 {
@@ -80,10 +82,10 @@ void main(void)
     }
 #endif
 #ifndef DO_STATE_MACHINE
-    TIMERS_InitTimer(2, 20);
-    TIMERS_InitTimer(1, 5000);
-    static int ind_on = 0;
-    while (1) {
+//    TIMERS_InitTimer(2, 20);
+//    TIMERS_InitTimer(1, 5000);
+//    static int ind_on = 0;
+//    while (1) {
 //        uint8_t tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0; // is the front right black?
 //        uint8_t tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
 //        uint8_t tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
@@ -116,8 +118,27 @@ void main(void)
 //            }
 //        }
 //        SetIndexer(ind_on);
-    }
+//    }
 #endif
+//#ifdef DO_TEST_HARNESS
+    while (1) {
+        uint8_t tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0; // is the front right black?
+        uint8_t tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
+        uint8_t tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
+        uint8_t tape_sl = ReadTapeSensorSL() == 0 ? 1 : 0;
+        uint8_t tape_r = ReadTapeSensorR() == 0 ? 1 : 0;
+        double beacon = ReadBeaconSensor1();
+        printf(
+            "Beacon: %2f, FR: %d, FL: %d, SR: %d, SL: %d, R: %d\n", 
+            beacon,
+            tape_fr,
+            tape_fl,
+            tape_sr,
+            tape_sl,
+            tape_r
+        );
+    }
+//#endif
 }
 
 
@@ -128,6 +149,7 @@ void main(void)
 #define STATE_ALIGN_FIND_CORNER         4
 #define STATE_ALIGN_MOVE_TO_CORNER      5
 #define STATE_ALIGN_CORNER_ROT          6
+#define STATE_ALIGN_CORNER_PAN          7
 
 uint8_t RunStateAlign(void) {
     // Initialize state mgmt variables
@@ -207,7 +229,7 @@ uint8_t RunStateAlign(void) {
 //            if (tape_fl) {
 //                TankDrive(-SLOW, SLOW);
 //            } else 
-            if (tape_fl || tape_fr) {
+            if (timer_expired && (tape_fl || tape_fr)) {
                 substate = STATE_ALIGN_MOVE_TO_CORNER;
             }
 
@@ -222,25 +244,9 @@ uint8_t RunStateAlign(void) {
             break;
         case STATE_ALIGN_MOVE_TO_CORNER:
             printf("Follow the bound to corner\n");
-
-            // line follow till SL
-//            int left_speed  =  tape_fl ? 0 : 900;  // if LEFT  is BLACK, turn LEFT  drive OFF
-//            int right_speed = !tape_fr ? 0 : 900;  // if RIGHT is WHITE, turn RIGHT drive OFF
-//
-//            TankDrive(left_speed, right_speed);
-//
-//            int turning_left = right_speed > left_speed;
-//
-//            if (tape_fl && !tape_fr) {
-//                TIMERS_InitTimer(1, 800);
-//                printf("Corner detected!\n");
-//                substate = STATE_ALIGN_CORNER_ROT;
-//            }
             
             if (!tape_fl && !tape_fr) {
                 TankDrive(SLOW, SLOW);
-//                printf("Corner detected!\n");
-//                substate = STATE_ALIGN_CORNER_ROT;
             } else {
                 MecanumDrive(0, MEDIUM, 0);
             }
@@ -253,6 +259,13 @@ uint8_t RunStateAlign(void) {
          case STATE_ALIGN_CORNER_ROT: // pan left to re follow tape
             MecanumDrive(0, 0, -MEDIUM);
             if (timer_expired) {
+                MecanumDrive(0, -SLOW, 0);
+                substate = STATE_ALIGN_CORNER_PAN;
+            }
+            break;
+        case STATE_ALIGN_CORNER_PAN:
+            MecanumDrive(0, -MEDIUM, 0);
+            if (tape_fr) {
                 MecanumDrive(0, 0, 0);
                 return 1;
             }
@@ -306,7 +319,7 @@ uint8_t RunStateNav(void) {
     static int substate = STATE_NAV_LINE_RIGHT;
     static uint8_t initialized = 0;
     static unsigned int accel_start_time = 0;
-
+    
     // Read sensors + state variables
     uint8_t tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0;
     uint8_t tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
@@ -337,6 +350,7 @@ uint8_t RunStateNav(void) {
 
     switch (substate) {
         case STATE_NAV_LINE_RIGHT:
+            MecanumDrive(MEDIUM, 700, 0);
             printf("LINE_RIGHT\n");
             TankDrive(
                 !tape_fl ? SLOW : 0,         // if LEFT  is BLACK, turn LEFT  drive OFF
@@ -351,11 +365,11 @@ uint8_t RunStateNav(void) {
                 queued_state = STATE_NAV_JUMP_LEFT;
             }
             
-           if ((!tape_fl && !tape_fr && tape_r && tape_sl) || (tape_fl && tape_fr && !tape_r))  {
-                MecanumDrive(0, MEDIUM, 0);
-                substate = STATE_NAV_FIN;
-                TIMERS_InitTimer(1, 4000);
-            }
+//           if ((!tape_fl && !tape_fr && tape_r && tape_sl) || (tape_fl && tape_fr && !tape_r))  {
+//                MecanumDrive(0, MEDIUM, 0);
+//                substate = STATE_NAV_FIN;
+//                TIMERS_InitTimer(1, 4000);
+//            }
             break;
         case STATE_NAV_LINE_LEFT:
             printf("LINE_LEFT\n");
@@ -372,11 +386,11 @@ uint8_t RunStateNav(void) {
                 queued_state = STATE_NAV_JUMP_RIGHT;
             }
             
-            if ((!tape_fl && !tape_fr && tape_r && tape_sr) || (tape_fl && tape_fr && !tape_r)) {
-                MecanumDrive(0, -MEDIUM , 0);
-                substate = STATE_NAV_FIN;
-                TIMERS_InitTimer(1, 4000);
-            }
+//            if ((!tape_fl && !tape_fr && tape_r && tape_sr) || (tape_fl && tape_fr && !tape_r)) {
+//                MecanumDrive(0, -MEDIUM , 0);
+//                substate = STATE_NAV_FIN;
+//                TIMERS_InitTimer(1, 4000);
+//            }
             
             break;
         case STATE_NAV_JUMP_RIGHT:
