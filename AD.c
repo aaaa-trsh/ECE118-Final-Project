@@ -407,6 +407,9 @@ void __ISR(_ADC_VECTOR, IPL1SOFT) ADCIntHandler(void)
     ADNewData = TRUE;
 }
 
+unsigned int AD_GetBatteryVoltage(void) {
+    return CurFilt_BatVoltage;
+}
 
 
 

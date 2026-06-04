@@ -12,8 +12,8 @@ extern "C" {
 #endif
 
 #define NUM_TAPE_SENSORS 5
-#define TAPE_PORT_V_PINS (PIN3 | PIN5 | PIN7)
-#define TAPE_PORT_W_PINS (PIN3 | PIN5)
+#define TAPE_PORT_V_PINS (PIN3 | PIN5 | PIN7 | PIN8)
+#define TAPE_PORT_W_PINS (PIN5)
 
 #define DRIVE_RL        0
 #define DRIVE_FR        1

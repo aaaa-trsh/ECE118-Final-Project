@@ -95,6 +95,7 @@ char AD_IsNewDataReady(void);
  * @brief Reads current value from buffer for given pin
  * @author Max Dunne, 2011.12.10 */
 unsigned int AD_ReadADPin(unsigned int Pin);
+unsigned int AD_GetBatteryVoltage(void);
 
 /**
  * @function AD_End(void)

@@ -7,8 +7,20 @@
 #include <stdio.h>
 
 //uint16_t _SetDriveMotor(DriveMotorIOConstants driveConsts, int8_t speed);
+int Rescale(int signal);
+
+double scale_ratio = 0;
+int Rescale(int signal) {
+    return signal / scale_ratio;
+}
+
+static int robot_initialized = 0;
 
 void InitRobot(void) {
+    if (robot_initialized) {
+        return;
+    }
+    robot_initialized = 1;
     PWM_Init();
     PWM_SetFrequency(PWM_2KHZ);
 
@@ -49,9 +61,10 @@ void InitRobot(void) {
     
     SetShooter(0, 0);
     SetIndexer(0);
+    scale_ratio = ((double)AD_GetBatteryVoltage()) / ((double)275);
 }
 
-uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int16_t speed) {
+uint16_t SetDriveMotorRescale(DriveMotorIOConstants driveConsts, int16_t speed, int8_t rescale) {
     if (speed == 0) {
         IO_PortsSetPortBits(driveConsts.port, driveConsts.in1);
         IO_PortsSetPortBits(driveConsts.port, driveConsts.in2);
@@ -76,12 +89,18 @@ uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int16_t speed) {
     uint16_t absspd = (uint16_t)(((double)(speed < 0 ? -speed : speed)) * driveConsts.multiplier);
     uint16_t unispd = (absspd > 1000) ? 1000 : absspd;
     
-    PWM_SetDutyCycle(driveConsts.pwm, unispd);
-//    printf("%d", unispd);
+    if (rescale) {
+        PWM_SetDutyCycle(driveConsts.pwm, Rescale(unispd));
+    } else {
+        PWM_SetDutyCycle(driveConsts.pwm, unispd);
+    }
     return unispd;
 }
+uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int16_t speed) {
+    return SetDriveMotorRescale(driveConsts, speed, 1);
+}
 
-void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot) {
+void MecanumDriveRescale(int16_t fwd, int16_t strafe, int16_t rot, int8_t rescale) {
     int16_t afwd    = (fwd    < 0) ? -(int16_t)fwd    : fwd;
     int16_t astrafe = (strafe < 0) ? -(int16_t)strafe : strafe;
     int16_t arot    = (rot    < 0) ? -(int16_t)rot    : rot;
@@ -94,10 +113,14 @@ void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot) {
     int16_t rl = ((int16_t)(fwd - strafe + rot) * 1000) / norm;
     int16_t rr = ((int16_t)(fwd + strafe - rot) * 1000) / norm;
 
-    SetDriveMotor(DRIVE_FRONT_LEFT,  fl);
-    SetDriveMotor(DRIVE_FRONT_RIGHT, fr); 
-    SetDriveMotor(DRIVE_REAR_LEFT,   rl);
-    SetDriveMotor(DRIVE_REAR_RIGHT,  rr);
+    SetDriveMotorRescale(DRIVE_FRONT_LEFT,  fl, rescale);
+    SetDriveMotorRescale(DRIVE_FRONT_RIGHT, fr, rescale); 
+    SetDriveMotorRescale(DRIVE_REAR_LEFT,   rl, rescale);
+    SetDriveMotorRescale(DRIVE_REAR_RIGHT,  rr, rescale);
+}
+
+void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot) {
+    MecanumDriveRescale(fwd, strafe, rot, 1);
 }
 
 void TankDrive(int16_t left, int16_t right) {
@@ -134,11 +157,12 @@ void SetIndexer(uint8_t enabled) {
 uint8_t ReadTapeSensorFR(void) { return (IO_PortsReadPort(PORTV) & PIN3) == 0; }
 uint8_t ReadTapeSensorR(void)  { return (IO_PortsReadPort(PORTV) & PIN5) == 0; }
 uint8_t ReadTapeSensorFL(void) { return (IO_PortsReadPort(PORTV) & PIN7) == 0; }
-uint8_t ReadTapeSensorSL(void) { return (IO_PortsReadPort(PORTW) & PIN3) == 0; }
+uint8_t ReadTapeSensorSL(void) { return (IO_PortsReadPort(PORTV) & PIN8) == 0; }
 uint8_t ReadTapeSensorSR(void) { return (IO_PortsReadPort(PORTW) & PIN5) == 0; }
 
 double ReadBeaconSensor1(void) { return ((double)AD_ReadADPin(AD_BEACON_1)) * 0.00322265625; }
 double ReadBeaconSensor2(void) { return ((double)AD_ReadADPin(AD_BEACON_2)) * 0.00322265625; }
+unsigned int ReadBatteryVoltage(void) { return AD_ReadADPin(BAT_VOLTAGE); }
 
 uint16_t ReadObstacleSensor1(void) { return (IO_PortsReadPort(OBSTACLE_1_PORT) & OBSTACLE_1_PIN) == 0; }
 uint16_t ReadObstacleSensor2(void) { return (IO_PortsReadPort(OBSTACLE_2_PORT) & OBSTACLE_2_PIN) == 0; }

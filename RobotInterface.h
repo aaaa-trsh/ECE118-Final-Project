@@ -6,15 +6,18 @@
 
     void InitRobot(void);
     
+    void TankDrive(int16_t left, int16_t right);
+
     /**
       @Parameters
-        @param fwd      -128: back     127: fwd
-        @param strafe   -128: left     127: right
+        @param fwd      -1000: back     1000: fwd
+        @param strafe   1000: left     -1000: right
      */
-    void TankDrive(int16_t left, int16_t right);
     void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot);
+    void MecanumDriveRescale(int16_t fwd, int16_t strafe, int16_t rot, int8_t rescale);
     uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int16_t speed);
-    
+    uint16_t SetDriveMotorRescale(DriveMotorIOConstants driveConsts, int16_t speed, int8_t rescale);
+
     /**
       @Parameters
         @param enabled -- bool is on?
@@ -36,6 +39,8 @@
     
     uint16_t ReadObstacleSensor1(void);
     uint16_t ReadObstacleSensor2(void);
+    unsigned int ReadBatteryVoltage(void);
+
 
 #ifdef __cplusplus
 }
