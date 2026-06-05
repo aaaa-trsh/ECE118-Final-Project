@@ -132,7 +132,7 @@ void DriveLeft(int16_t spd)     {
     SetDriveMotorRescale(DRIVE_REAR_RIGHT,  -spd, 1);
 }
 void DriveRight(int16_t spd)    {
-    MecanumDrive(0, spd, 30);
+    MecanumDrive(0, spd, 20);
 //    SetDriveMotorRescale(DRIVE_FRONT_LEFT,   spd * 0.94, 1);
 //    SetDriveMotorRescale(DRIVE_FRONT_RIGHT, -spd * 0.94, 1); 
 //    SetDriveMotorRescale(DRIVE_REAR_LEFT,   -spd, 1);

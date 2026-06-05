@@ -15,6 +15,7 @@ uint8_t RunStateShoot(void);
 void UpdateDebouncedValues(void);
 int GetTailExitEvent(int tape_r);
 void UpdateBeaconFilter(void);
+uint8_t SeekBeacon(int initialize, double target_thresh);
 
 #define STATE_ALIGN     0
 #define STATE_NAV_ISZ   1
@@ -25,25 +26,32 @@ void UpdateBeaconFilter(void);
 #define SUPASLOW    700
 #define CORNER_ALIGN_RATE_PER_MS 0.6 // counts per millisecond
 
-#define TURN_180_DUR 1500
+#define TURN_180_DUR 1700
 
 #define DO_STATE_MACHINE
+
+#define INITIAL_THRESH          1.5
+
+// !!!!!!!!!!! BEACON DEFINES !!!!!!!!!!!
+#define TARGET_THRESH           3.6
+#define WIDE_ALIGN_THRESH       2.1
+#define NARROW_ALIGN_THRESH     2.4
+#define FILTER_SIZE             40
 
 static uint8_t tape_fr = 0;
 static uint8_t tape_fl = 0;
 static uint8_t tape_sr = 0;
 static uint8_t tape_sl = 0;
+static uint8_t prev_tape_sr = 0;
+static uint8_t prev_tape_sl = 0;
 static uint8_t tape_r = 0;
 static uint8_t debounce_timer_expired = 0;
 static uint8_t obs1_detected = 0;
 static uint8_t obs2_detected = 0;
-static double beacon = 0;
+static double aim_beacon = 0;
+static double shoot_beacon = 0;
 
-void main(void)
-{
-    
-//    ES_Return_t ErrorType;
-    
+void main(void) {
     BOARD_Init();
     AD_Init();
     InitRobot();
@@ -52,29 +60,10 @@ void main(void)
     printf("Starting Team 5 Robot!!\r\n");
     printf("using the 2nd Generation Events & Services Framework\r\n");
     
-//    ErrorType = ES_Initialize();
-//    if (ErrorType == Success) {
-//        ErrorType = ES_Run();
-//    }
-//    
-//    //if we got to here, there was an error
-//    switch (ErrorType) {
-//    case FailedPointer:
-//        printf("Failed on NULL pointer");
-//        break;
-//    case FailedInit:
-//        printf("Failed Initialization");
-//        break;
-//    default:
-//        printf("Other Failure: %d", ErrorType);
-//        break;
-//    }
-//    for (;;)
-//        ;
-    
     TIMERS_InitTimer(10, 50); // start debounce timer
+    
 #ifdef DO_STATE_MACHINE
-    static int state = STATE_NAV_ISZ;
+    static int state = STATE_ALIGN;
     uint8_t fin = 0;
     while (1) {
         debounce_timer_expired = TIMERS_IsTimerExpired(10) == TIMER_EXPIRED;
@@ -86,9 +75,11 @@ void main(void)
              case STATE_NAV_ISZ:
                 fin = RunStateNav();
                 if (fin) { state = STATE_SHOOT; }
+                break;
             case STATE_SHOOT:
                 fin = RunStateShoot();
                 if (fin) { state = -1; }
+                break;
             default:
                 break;
         }
@@ -97,17 +88,29 @@ void main(void)
         UpdateBeaconFilter();
     }
 #endif
+    double max_beacon = INITIAL_THRESH;
+    int seeking = 0;
     while (1) {
         debounce_timer_expired = TIMERS_IsTimerExpired(10) == TIMER_EXPIRED;
-        printf(
-            "Beacon: %2f, FR: %d, FL: %d, SR: %d, SL: %d, R: %d\n", 
-            beacon,
-            tape_fr,
-            tape_fl,
-            tape_sr,
-            tape_sl,
-            tape_r
-        );
+        uint8_t hold_timer_expired = TIMERS_IsTimerExpired(2) == TIMER_EXPIRED;
+        
+        if (debounce_timer_expired) {
+            printf(
+                "aim=%2f, sht=%2f/max=%2f, FR: %d, FL: %d, SR: %d, SL: %d, R: %d\n", 
+                aim_beacon,
+                shoot_beacon,
+                max_beacon,
+                tape_fr,
+                tape_fl,
+                tape_sr,
+                tape_sl,
+                tape_r
+            );
+        }
+        
+        if (shoot_beacon > max_beacon) {
+            max_beacon += 0.05;
+        }
         
         UpdateDebouncedValues();
         UpdateBeaconFilter();
@@ -116,6 +119,9 @@ void main(void)
 
 void UpdateDebouncedValues(void) {
     if (debounce_timer_expired) {
+        uint8_t prev_sr = tape_sr;
+        uint8_t prev_sl = tape_sl;
+        
         tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0; // is the front right black?
         tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
         tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
@@ -123,19 +129,41 @@ void UpdateDebouncedValues(void) {
         tape_r = ReadTapeSensorR() == 0 ? 1 : 0;
         obs1_detected = ReadObstacleSensor1();
         obs2_detected = ReadObstacleSensor2();
+        
+        prev_tape_sr = prev_sr;
+        prev_tape_sl = prev_sl;
+        
         TIMERS_InitTimer(10, 50);
     }
 }
 
+static uint8_t filter_init = 0;
 void UpdateBeaconFilter(void) {
-    static double buf[5] = { 0, 0, 0, 0, 0 };
+    static double aim_buf[FILTER_SIZE];
+    static double sht_buf[FILTER_SIZE];
     static int b_i = 0;
     
-    double reading = ReadBeaconSensor1();
-    buf[b_i] = reading;
-    b_i = (b_i + 1) % 5;
+    if (!filter_init) {
+        for (int i = 0; i < FILTER_SIZE; i++) {
+            aim_buf[i] = 0;
+            sht_buf[i] = 0;
+        }
+        filter_init = 1;
+    }
     
-    beacon = (buf[0] + buf[1] + buf[2] + buf[3] + buf[4]) / 5;
+    aim_buf[b_i] = ReadBeaconSensor1();
+    sht_buf[b_i] = ReadBeaconSensor2();
+
+    b_i = (b_i + 1) % FILTER_SIZE;
+    
+    double aim_avg = 0, sht_avg = 0;
+    for (int i = 0; i < FILTER_SIZE; i++) {
+        aim_avg += aim_buf[i];
+        sht_avg += sht_buf[i];
+    }
+    
+    aim_beacon = aim_avg / FILTER_SIZE;
+    shoot_beacon = sht_avg / FILTER_SIZE;
 }
 
 #define STATE_ALIGN_HOME                0
@@ -150,33 +178,24 @@ void UpdateBeaconFilter(void) {
 uint8_t RunStateAlign(void) {
     // Initialize state mgmt variables
     static int substate = STATE_ALIGN_HOME;
-    static uint8_t scanned_beacon = 0;
-    static uint8_t scanned_tape = 0;
-    static uint8_t initialized = 0;
-
-    static uint8_t corner_last_trip_time = 0;
-    static uint8_t tapes_tripped = 0;
+    static uint8_t align_initialized = 0;
 
     uint8_t timer_expired = TIMERS_IsTimerExpired(1) == TIMER_EXPIRED;
 
-    if (!initialized) {
-        if (beacon > 2) { // if we are facing the beacon, do a spin
+    if (!align_initialized) {
+        if (aim_beacon > WIDE_ALIGN_THRESH) { // if we are facing the beacon, do a spin
             TIMERS_InitTimer(1, TURN_180_DUR);
             substate = STATE_ALIGN_HOME;
         } else { // if we arent facing the beacon, skip to seeking the beacon
             substate = STATE_ALIGN_FIND_SOUTH;
             TIMERS_InitTimer(1, 1000);
         }
-        initialized = 1;
+        align_initialized = 1;
     }
     
-    // 1. turn till beacon
-    // 2. turn 90 deg
-    // 3. sweep to left
     switch (substate) {
         case STATE_ALIGN_HOME:
             MecanumDrive(0, 0, MEDIUM);
-
             if (timer_expired) { // once we do spin, seek da beacon
                 substate = STATE_ALIGN_FIND_SOUTH;
                 TIMERS_InitTimer(1, 1000);
@@ -185,10 +204,10 @@ uint8_t RunStateAlign(void) {
         
         // then turn to south
         case STATE_ALIGN_FIND_SOUTH:
-            printf("ALIGN_FIND_SOUTH: beacon=%5f\n", beacon);
+            printf("ALIGN_FIND_SOUTH: beacon=%5f\n", aim_beacon);
             MecanumDrive(0, 0, 800);
 
-            if (timer_expired && beacon > 2.4) {
+            if (timer_expired && aim_beacon > NARROW_ALIGN_THRESH) {
                 DriveBackward(SLOW);
                 substate = STATE_ALIGN_BACK_OFF;
                 TIMERS_InitTimer(1, 1000);
@@ -204,31 +223,14 @@ uint8_t RunStateAlign(void) {
             }
             break;
 
-        // approach the bound, sometimes backing up to align to the tape
-        // (like how a car aligns to a parking spot)
         case STATE_ALIGN_FIND_CORNER:
-            /*
-            Comment away!
-            advance forward straight
-            */
             DriveForward(SLOW);
             printf("Seek towards bound line!\n");
             
             if (timer_expired && (tape_fl || tape_fr)) {
-//                substate = STATE_ALIGN_MOVE_TO_CORNER;
-//                TIMERS_InitTimer(1, 20);
                 substate = STATE_ALIGN_CORNER_ROT;
                 TIMERS_InitTimer(1, TURN_180_DUR * 0.9);
             }
-
-            /*
-                if frlont left is triggered
-                    back up, turn discrete angle right
-                    try again - go forwards
-                if right hit, begin first follow of the tape
-                    if the turns are calibrated correctly, the tape will be followed even at the 90 degree turn, so this behavior
-                    should be continued until a obstacle is detected
-            */
             break;
             
          case STATE_ALIGN_CORNER_ROT: // pan left to re follow tape
@@ -293,18 +295,18 @@ int GetTailExitEvent(int tape_r) {
 
 uint8_t RunStateNav(void) {
     static int substate = STATE_NAV_LINE_RIGHT;
-    static uint8_t initialized = 0;
+    static uint8_t nav_initialized = 0;
     static unsigned int accel_start_time = 0;
     
-    static uint8_t tape_r_prev = 0;
     static int queued_state = 0;
+    static uint8_t tape_on_left = 0;
 
     uint8_t timer_expired = TIMERS_IsTimerExpired(1) == TIMER_EXPIRED;
-
-    if (!initialized) {
+    
+    if (!nav_initialized) {
         TIMERS_InitTimer(1, 1000); // such that the right path can see corners given no obstacles detected
         printf("INITIALIZE NAV!");
-        initialized = 1;
+        nav_initialized = 1;
     }
     
     int js = JUMP_ACCEL * (TIMERS_GetTime() - accel_start_time);
@@ -312,20 +314,22 @@ uint8_t RunStateNav(void) {
     int jump_speed = js <= 800 ? 800 : js;
     
     // tail tape events
-//    int tail_exited_tape = GetTailExitEvent(tape_r);
+    int tail_exited_tape = GetTailExitEvent(tape_r);
     
     switch (substate) {
         case STATE_NAV_LINE_RIGHT:
+            tape_on_left = 0;
             printf("LINE_RIGHT\n");
             TankDrive(
-                !tape_fl ? SLOW : 0,         // if LEFT  is BLACK, turn LEFT  drive OFF
-                tape_fr ? SLOW : 0         // if RIGHT is WHITE, turn RIGHT drive OFF
+                !tape_fl ? SLOW : -670,         // if LEFT  is BLACK, turn LEFT  drive OFF
+                tape_fr ? SLOW : -670         // if RIGHT is WHITE, turn RIGHT drive OFF
             );
             
-            if (timer_expired && tape_sl) { 
-                MecanumDrive(0, 0, 0);
-                substate = STATE_NAV_FIN;
-                TIMERS_InitTimer(1, 4000);
+            if (timer_expired && (tape_sl && tape_sl == prev_tape_sl)) { 
+                TankDrive(-SLOW, -SLOW);
+                substate = STATE_NAV_DELAY;
+                queued_state = STATE_NAV_FIN;
+                TIMERS_InitTimer(1, 1000);
                 break;
             }
             
@@ -338,19 +342,20 @@ uint8_t RunStateNav(void) {
                 break;
             }
             
-            tape_r_prev = tape_r;
             break;
         case STATE_NAV_LINE_LEFT:
+            tape_on_left = 1;
             printf("LINE_LEFT\n");            
             TankDrive(
-                tape_fl ? SLOW : 0,         // if LEFT  is WHITE, turn LEFT  drive OFF
-                !tape_fr ? SLOW : 0           // if RIGHT is BLACK, turn RIGHT drive OFF
+                tape_fl ? SLOW : -670,         // if LEFT  is WHITE, turn LEFT  drive OFF
+                !tape_fr ? SLOW : -670           // if RIGHT is BLACK, turn RIGHT drive OFF
             );
             
-            if (timer_expired && tape_sr) {
-                MecanumDrive(0, 0, 0);
-                substate = STATE_NAV_FIN;
-                TIMERS_InitTimer(1, 4000);
+            if (timer_expired && (tape_sr && tape_sr == prev_tape_sr)) {
+                TankDrive(-SLOW, -SLOW);
+                substate = STATE_NAV_DELAY;
+                queued_state = STATE_NAV_FIN;
+                TIMERS_InitTimer(1, 1000);
                 break;
             }
             
@@ -363,10 +368,9 @@ uint8_t RunStateNav(void) {
                 break;
             }
             
-            tape_r_prev = tape_r;
             break;
         case STATE_NAV_JUMP_RIGHT:
-            DriveRight(timer_expired ? SLOW : MEDIUM);
+            DriveRight(timer_expired ? SLOW * 1.1 : MEDIUM);
             printf("Jumping right: %d\n", jump_speed);
             if (timer_expired && (tape_fr || tape_r)) {
                 queued_state = STATE_NAV_LINE_RIGHT;
@@ -376,7 +380,7 @@ uint8_t RunStateNav(void) {
             }
             break;
         case STATE_NAV_JUMP_LEFT:
-            DriveLeft(timer_expired ? SLOW : MEDIUM);
+            DriveLeft(timer_expired ? SLOW * 1.1 : MEDIUM);
             printf("Jumping left: %d\n", jump_speed);
             if (timer_expired && (tape_fl || tape_r)) {
                 queued_state = STATE_NAV_LINE_LEFT;
@@ -396,12 +400,20 @@ uint8_t RunStateNav(void) {
                 ) {
                     accel_start_time = TIMERS_GetTime() - 300;
                     TIMERS_InitTimer(1, queued_state == STATE_NAV_JUMP_LEFT ? 3500 : 4000);
+                } else if (queued_state == STATE_NAV_FIN) {
+                    TIMERS_InitTimer(1, 2000);
                 } else {
                     TIMERS_InitTimer(1, 1000);
                 }
             }
             break;
         case STATE_NAV_FIN:
+            if (!timer_expired && tape_on_left) {
+                DriveRight(MEDIUM);
+            } else {
+                DriveLeft(MEDIUM);
+            }
+            
             if (timer_expired) {
                 printf("FIN !!!\n");
                 MecanumDrive(0, 0, 0);
@@ -412,70 +424,73 @@ uint8_t RunStateNav(void) {
             break;
     }
 
-    tape_r_prev = tape_r;
-
     return 0;
 }
 
 #define STATE_SHOOT_SEEK        0
 #define STATE_SHOOT_SPRAY       1
 
+uint8_t SeekBeacon(int initialize, double target_thresh) {
+    return 0;
+}
+
 uint8_t RunStateShoot(void) {
     static int substate = STATE_SHOOT_SEEK;
-    static int direction = 1;
-    static int indexer_on = 0;
-    static int initialized = 0;
-    static double max_thresh = 1.5;
-    static int seek_speed = 800;
-    static int seek_steps = 0;
+    static int shoot_initialized = 0;
+    static int seek_speed = 900;
+    static double max_thresh = INITIAL_THRESH;
     
+    double target_thresh = TARGET_THRESH;
+    
+    uint8_t ignore_timer_done = TIMERS_IsTimerExpired(5) == TIMER_EXPIRED;
+    uint8_t still_timer_done = TIMERS_IsTimerExpired(6) == TIMER_EXPIRED;
 
-    if (!initialized) {
+    if (!shoot_initialized) {
         TIMERS_InitTimer(7, 5000);
         printf("set shooter on!");
-        initialized = 1;
-        TIMERS_InitTimer(4, 50);
-        TIMERS_InitTimer(5, 4000); // seek for atleast 4s
+        shoot_initialized = 1;
+        SeekBeacon(1, TARGET_THRESH);
+        seek_speed = 800;
+        max_thresh = INITIAL_THRESH;
+        TIMERS_InitTimer(4, 20); // update timer
+        TIMERS_InitTimer(5, 1500); // seek for atleast 1.5s
+        TIMERS_InitTimer(6, 20); // direction change timer
     }
     
-//    printf("beacon=%2f thresh=%2f\n", beacon, max_thresh);
+    uint8_t do_update = TIMERS_IsTimerExpired(4) == TIMER_EXPIRED;
+
     switch (substate) {
         case STATE_SHOOT_SEEK:
+            printf("Seeking b=%.2f max=%.2f spd=%d\n", shoot_beacon, max_thresh, seek_speed);
             MecanumDrive(0, 0, seek_speed);
-            if (beacon > max_thresh && TIMERS_IsTimerExpired(4) == TIMER_EXPIRED) {
-                printf("Seek step... reached %2f... speed %d\n", max_thresh, seek_speed);
-                max_thresh += 0.05;
-                seek_speed = 800 - (300 * ((max_thresh - 1.5) / .6));
+            if (shoot_beacon > max_thresh && do_update) {
+                max_thresh += 0.2;
+                seek_speed = 900 - (300 * ((shoot_beacon - INITIAL_THRESH) / (target_thresh - INITIAL_THRESH)));
+
+                TIMERS_InitTimer(4, 20);
                 
-                // far scalefactor   = 0.6 ----- max measurement = 2.15
-                // mid scalefactor   = 1.2 ----- max measurement = 2.25
-                // close scalefactor = 1.5 ----- max measurement = 2.85
-                TIMERS_InitTimer(4, 200);
-                
-                if (TIMERS_IsTimerExpired(5) == TIMER_EXPIRED) {
+                if (ignore_timer_done && max_thresh > INITIAL_THRESH) {
                     printf("Resetting timer\n");
-                    TIMERS_InitTimer(6, 2000); // wait for stillness for 2s, then transition
+                    TIMERS_InitTimer(6, 1000); // wait for stillness for 2s, then transition
                 }
             }
             
-            if (TIMERS_IsTimerExpired(5) == TIMER_EXPIRED && TIMERS_IsTimerExpired(6) == TIMER_EXPIRED) {
+            if (ignore_timer_done && still_timer_done && shoot_beacon > INITIAL_THRESH) {
                 printf("TRANSITION\n");
                 substate = STATE_SHOOT_SPRAY;
                 TankDrive(0, 0);
                 SetShooter(1, 0);
-                TIMERS_InitTimer(1, 5000); // wait for 5s before indexing
-                TIMERS_InitTimer(3, 400); // rambo 1s
+                TIMERS_InitTimer(7, 4000); // wait for 5s before indexing
+                TIMERS_InitTimer(3, 300); // rambo 1s
                 TIMERS_InitTimer(2, 20);
             }
 
             break;
         case STATE_SHOOT_SPRAY:
 //            printf("Seek spray dir=%d\n", direction);
-             MecanumDrive(0, 0, 800 * direction);
+             MecanumDrive(0, 0, 800);
              if (TIMERS_IsTimerExpired(3) == TIMER_EXPIRED) {
-//                direction *= -1;
                  MecanumDrive(0, 0, 0);
-//                TIMERS_InitTimer(3, 1000);
              }
 
             // turn indexer on only after 5 seconds elapsed since entering shooting
@@ -484,6 +499,7 @@ uint8_t RunStateShoot(void) {
 //                    indexer_on = !indexer_on;
 //                    TIMERS_InitTimer(2, 20);
 //                }
+                printf("INDEX");
                 SetIndexer(1);
             }
 
@@ -494,23 +510,3 @@ uint8_t RunStateShoot(void) {
     
     return 0;
 }
-/*------------------------------- Footnotes -------------------------------*/
-/*------------------------------ End of file ------------------------------*/
- 
-
-//#include "BOARD.h"
-//#include <xc.h>
-//#include <stdio.h>
-//#include "pwm.h"
-//#include "IO_Ports.h"
-//int main(void) {
-//    BOARD_Init();
-//    PWM_Init();
-//    PWM_SetFrequency(2000);
-//    PWM_AddPins(PWM_PORTX11);
-//    IO_PortsSetPortOutputs(PORTX, PIN3);
-//    while (1) {
-//        IO_PortsSetPortBits(PORTX, PIN3);
-//        PWM_SetDutyCycle(PWM_PORTX11, 1000);
-//    }
-//}
