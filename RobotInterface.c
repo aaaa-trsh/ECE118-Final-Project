@@ -11,7 +11,7 @@ int Rescale(int signal);
 
 double scale_ratio = 0;
 int Rescale(int signal) {
-    return signal / scale_ratio;
+    return signal;// / scale_ratio;
 }
 
 static int robot_initialized = 0;
@@ -122,6 +122,23 @@ void MecanumDriveRescale(int16_t fwd, int16_t strafe, int16_t rot, int8_t rescal
 void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot) {
     MecanumDriveRescale(fwd, strafe, rot, 1);
 }
+
+void DriveForward(int16_t spd)  { TankDrive(spd, spd);      }
+void DriveBackward(int16_t spd) { TankDrive(-spd, -spd);    }
+void DriveLeft(int16_t spd)     {
+    SetDriveMotorRescale(DRIVE_FRONT_LEFT,  -spd * 0.97, 1);
+    SetDriveMotorRescale(DRIVE_FRONT_RIGHT,  spd * 0.91, 1); 
+    SetDriveMotorRescale(DRIVE_REAR_LEFT,    spd * 0.94, 1);
+    SetDriveMotorRescale(DRIVE_REAR_RIGHT,  -spd, 1);
+}
+void DriveRight(int16_t spd)    {
+    MecanumDrive(0, spd, 30);
+//    SetDriveMotorRescale(DRIVE_FRONT_LEFT,   spd * 0.94, 1);
+//    SetDriveMotorRescale(DRIVE_FRONT_RIGHT, -spd * 0.94, 1); 
+//    SetDriveMotorRescale(DRIVE_REAR_LEFT,   -spd, 1);
+//    SetDriveMotorRescale(DRIVE_REAR_RIGHT,   spd, 1);
+}
+void DriveStop()                { MecanumDrive(0, 0, 0);    }
 
 void TankDrive(int16_t left, int16_t right) {
     SetDriveMotor(DRIVE_FRONT_LEFT,  left);

@@ -15,6 +15,13 @@
      */
     void MecanumDrive(int16_t fwd, int16_t strafe, int16_t rot);
     void MecanumDriveRescale(int16_t fwd, int16_t strafe, int16_t rot, int8_t rescale);
+    
+    void DriveForward(int16_t spd);
+    void DriveBackward(int16_t spd);
+    void DriveLeft(int16_t spd);
+    void DriveRight(int16_t spd);
+    void DriveStop();
+    
     uint16_t SetDriveMotor(DriveMotorIOConstants driveConsts, int16_t speed);
     uint16_t SetDriveMotorRescale(DriveMotorIOConstants driveConsts, int16_t speed, int8_t rescale);
 

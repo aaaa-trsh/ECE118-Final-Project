@@ -12,7 +12,9 @@
 uint8_t RunStateAlign(void);
 uint8_t RunStateNav(void);
 uint8_t RunStateShoot(void);
+void UpdateDebouncedValues(void);
 int GetTailExitEvent(int tape_r);
+void UpdateBeaconFilter(void);
 
 #define STATE_ALIGN     0
 #define STATE_NAV_ISZ   1
@@ -26,7 +28,16 @@ int GetTailExitEvent(int tape_r);
 #define TURN_180_DUR 1500
 
 #define DO_STATE_MACHINE
-//#define DO_TEST_HARNESS
+
+static uint8_t tape_fr = 0;
+static uint8_t tape_fl = 0;
+static uint8_t tape_sr = 0;
+static uint8_t tape_sl = 0;
+static uint8_t tape_r = 0;
+static uint8_t debounce_timer_expired = 0;
+static uint8_t obs1_detected = 0;
+static uint8_t obs2_detected = 0;
+static double beacon = 0;
 
 void main(void)
 {
@@ -61,73 +72,33 @@ void main(void)
 //    for (;;)
 //        ;
     
+    TIMERS_InitTimer(10, 50); // start debounce timer
 #ifdef DO_STATE_MACHINE
-    static int state = STATE_ALIGN;
+    static int state = STATE_NAV_ISZ;
     uint8_t fin = 0;
     while (1) {
+        debounce_timer_expired = TIMERS_IsTimerExpired(10) == TIMER_EXPIRED;
         switch (state) {
             case STATE_ALIGN:
                 fin = RunStateAlign();
                 if (fin) { state = STATE_NAV_ISZ; }
                 break;
              case STATE_NAV_ISZ:
-                 fin = RunStateNav();
-                 if (fin) { state = STATE_SHOOT; }
-//            case STATE_SHOOT:
-//                fin = RunStateShoot();
-//                if (fin) { state = -1; }
+                fin = RunStateNav();
+                if (fin) { state = STATE_SHOOT; }
+            case STATE_SHOOT:
+                fin = RunStateShoot();
+                if (fin) { state = -1; }
             default:
                 break;
         }
+        
+        UpdateDebouncedValues();
+        UpdateBeaconFilter();
     }
 #endif
-#ifndef DO_STATE_MACHINE
-//    TIMERS_InitTimer(2, 20);
-//    TIMERS_InitTimer(1, 5000);
-//    static int ind_on = 0;
-//    while (1) {
-//        uint8_t tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0; // is the front right black?
-//        uint8_t tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
-//        uint8_t tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
-//        uint8_t tape_sl = ReadTapeSensorSL() == 0 ? 1 : 0;
-//        uint8_t tape_r = ReadTapeSensorR() == 0 ? 1 : 0;
-//        MecanumDrive
-//        printf(
-//            "FR: %d, FL: %d, SR: %d, SL: %d, R: %d\n", 
-//            tape_fr,
-//            tape_fl,
-//            tape_sr,
-//            tape_sl,
-//            tape_r
-//        );
-        // 9.72V = 164 counts
-        // 10.1V = 304 counts
-        
-        
-        // 283 = 9.67
-        // 292 = 9.93
-//        printf("voltage: %d\n", );
-//        SetShooter(1, 0);
-//        MecanumDrive(0, 0, 790);
-        
-        
-//        if (TIMERS_IsTimerExpired(1) == TIMER_EXPIRED) {
-//            if (TIMERS_IsTimerExpired(2) == TIMER_EXPIRED) {
-//                ind_on = !ind_on;
-//                TIMERS_InitTimer(2, 20);
-//            }
-//        }
-//        SetIndexer(ind_on);
-//    }
-#endif
-//#ifdef DO_TEST_HARNESS
     while (1) {
-        uint8_t tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0; // is the front right black?
-        uint8_t tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
-        uint8_t tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
-        uint8_t tape_sl = ReadTapeSensorSL() == 0 ? 1 : 0;
-        uint8_t tape_r = ReadTapeSensorR() == 0 ? 1 : 0;
-        double beacon = ReadBeaconSensor1();
+        debounce_timer_expired = TIMERS_IsTimerExpired(10) == TIMER_EXPIRED;
         printf(
             "Beacon: %2f, FR: %d, FL: %d, SR: %d, SL: %d, R: %d\n", 
             beacon,
@@ -137,10 +108,35 @@ void main(void)
             tape_sl,
             tape_r
         );
+        
+        UpdateDebouncedValues();
+        UpdateBeaconFilter();
     }
-//#endif
 }
 
+void UpdateDebouncedValues(void) {
+    if (debounce_timer_expired) {
+        tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0; // is the front right black?
+        tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
+        tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
+        tape_sl = ReadTapeSensorSL() == 0 ? 1 : 0;
+        tape_r = ReadTapeSensorR() == 0 ? 1 : 0;
+        obs1_detected = ReadObstacleSensor1();
+        obs2_detected = ReadObstacleSensor2();
+        TIMERS_InitTimer(10, 50);
+    }
+}
+
+void UpdateBeaconFilter(void) {
+    static double buf[5] = { 0, 0, 0, 0, 0 };
+    static int b_i = 0;
+    
+    double reading = ReadBeaconSensor1();
+    buf[b_i] = reading;
+    b_i = (b_i + 1) % 5;
+    
+    beacon = (buf[0] + buf[1] + buf[2] + buf[3] + buf[4]) / 5;
+}
 
 #define STATE_ALIGN_HOME                0
 #define STATE_ALIGN_FIND_SOUTH          1
@@ -161,13 +157,6 @@ uint8_t RunStateAlign(void) {
     static uint8_t corner_last_trip_time = 0;
     static uint8_t tapes_tripped = 0;
 
-    // Read sensors + state variables
-    uint8_t tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0; // is the front right black?
-    uint8_t tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
-    uint8_t tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
-    uint8_t tape_sl = ReadTapeSensorSL() == 0 ? 1 : 0;
-    double beacon = ReadBeaconSensor1();
-
     uint8_t timer_expired = TIMERS_IsTimerExpired(1) == TIMER_EXPIRED;
 
     if (!initialized) {
@@ -178,7 +167,6 @@ uint8_t RunStateAlign(void) {
             substate = STATE_ALIGN_FIND_SOUTH;
             TIMERS_InitTimer(1, 1000);
         }
-
         initialized = 1;
     }
     
@@ -200,12 +188,10 @@ uint8_t RunStateAlign(void) {
             printf("ALIGN_FIND_SOUTH: beacon=%5f\n", beacon);
             MecanumDrive(0, 0, 800);
 
-            if (timer_expired && beacon > 2.1) {
-                MecanumDrive(0, 0, 0);
-                
-                MecanumDrive(-SLOW, 0, 0);
+            if (timer_expired && beacon > 2.4) {
+                DriveBackward(SLOW);
                 substate = STATE_ALIGN_BACK_OFF;
-                TIMERS_InitTimer(1, 700);
+                TIMERS_InitTimer(1, 1000);
                 printf("Beacon Detected! backing off..\n");
             }
             break;
@@ -214,6 +200,7 @@ uint8_t RunStateAlign(void) {
             printf("Back up...\n");
             if (timer_expired) {
                 substate = STATE_ALIGN_FIND_CORNER;
+                TIMERS_InitTimer(1, 700);
             }
             break;
 
@@ -224,13 +211,14 @@ uint8_t RunStateAlign(void) {
             Comment away!
             advance forward straight
             */
-            TankDrive(SLOW, SLOW);
+            DriveForward(SLOW);
             printf("Seek towards bound line!\n");
-//            if (tape_fl) {
-//                TankDrive(-SLOW, SLOW);
-//            } else 
+            
             if (timer_expired && (tape_fl || tape_fr)) {
-                substate = STATE_ALIGN_MOVE_TO_CORNER;
+//                substate = STATE_ALIGN_MOVE_TO_CORNER;
+//                TIMERS_InitTimer(1, 20);
+                substate = STATE_ALIGN_CORNER_ROT;
+                TIMERS_InitTimer(1, TURN_180_DUR * 0.9);
             }
 
             /*
@@ -242,30 +230,18 @@ uint8_t RunStateAlign(void) {
                     should be continued until a obstacle is detected
             */
             break;
-        case STATE_ALIGN_MOVE_TO_CORNER:
-            printf("Follow the bound to corner\n");
             
-            if (!tape_fl && !tape_fr) {
-                TankDrive(SLOW, SLOW);
-            } else {
-                MecanumDrive(0, MEDIUM, 0);
-            }
-            
-            if (tape_sl) {
-                substate = STATE_ALIGN_CORNER_ROT;
-                TIMERS_InitTimer(1, TURN_180_DUR * 0.9);
-            }
-            break;
          case STATE_ALIGN_CORNER_ROT: // pan left to re follow tape
             MecanumDrive(0, 0, -MEDIUM);
             if (timer_expired) {
-                MecanumDrive(0, -SLOW, 0);
+                DriveRight(SLOW);
                 substate = STATE_ALIGN_CORNER_PAN;
+                TIMERS_InitTimer(1, 500);
             }
             break;
         case STATE_ALIGN_CORNER_PAN:
-            MecanumDrive(0, -MEDIUM, 0);
-            if (tape_fr) {
+            DriveRight(MEDIUM);
+            if (timer_expired && tape_sr) {
                 MecanumDrive(0, 0, 0);
                 return 1;
             }
@@ -273,7 +249,7 @@ uint8_t RunStateAlign(void) {
         default:
             break;
     }
-
+                
     return 0;
 }
 
@@ -320,23 +296,13 @@ uint8_t RunStateNav(void) {
     static uint8_t initialized = 0;
     static unsigned int accel_start_time = 0;
     
-    // Read sensors + state variables
-    uint8_t tape_fr = ReadTapeSensorFR() == 0 ? 1 : 0;
-    uint8_t tape_fl = ReadTapeSensorFL() == 0 ? 1 : 0;
-    uint8_t tape_sr = ReadTapeSensorSR() == 0 ? 1 : 0;
-    uint8_t tape_sl = ReadTapeSensorSL() == 0 ? 1 : 0;
-    uint8_t tape_r = ReadTapeSensorR() == 0 ? 1 : 0;
-    
-    uint8_t obs1_detected = ReadObstacleSensor1();
-    uint8_t obs2_detected = ReadObstacleSensor2();
-
-    double beacon = ReadBeaconSensor1();
-    
+    static uint8_t tape_r_prev = 0;
     static int queued_state = 0;
 
     uint8_t timer_expired = TIMERS_IsTimerExpired(1) == TIMER_EXPIRED;
 
     if (!initialized) {
+        TIMERS_InitTimer(1, 1000); // such that the right path can see corners given no obstacles detected
         printf("INITIALIZE NAV!");
         initialized = 1;
     }
@@ -346,55 +312,61 @@ uint8_t RunStateNav(void) {
     int jump_speed = js <= 800 ? 800 : js;
     
     // tail tape events
-    int tail_exited_tape = GetTailExitEvent(tape_r);
-
+//    int tail_exited_tape = GetTailExitEvent(tape_r);
+    
     switch (substate) {
         case STATE_NAV_LINE_RIGHT:
-            MecanumDrive(MEDIUM, 700, 0);
             printf("LINE_RIGHT\n");
             TankDrive(
                 !tape_fl ? SLOW : 0,         // if LEFT  is BLACK, turn LEFT  drive OFF
                 tape_fr ? SLOW : 0         // if RIGHT is WHITE, turn RIGHT drive OFF
             );
-
+            
+            if (timer_expired && tape_sl) { 
+                MecanumDrive(0, 0, 0);
+                substate = STATE_NAV_FIN;
+                TIMERS_InitTimer(1, 4000);
+                break;
+            }
+            
             if (obs1_detected || obs2_detected) {
                 printf("Hit object. Jumping left..\n");
                 substate = STATE_NAV_DELAY;
-                TIMERS_InitTimer(1, 200);
-                MecanumDrive(0, 0, SLOW * 0.7);
+                TIMERS_InitTimer(1, 300);
+                MecanumDrive(0, 0, SLOW * 0.8);
                 queued_state = STATE_NAV_JUMP_LEFT;
+                break;
             }
             
-//           if ((!tape_fl && !tape_fr && tape_r && tape_sl) || (tape_fl && tape_fr && !tape_r))  {
-//                MecanumDrive(0, MEDIUM, 0);
-//                substate = STATE_NAV_FIN;
-//                TIMERS_InitTimer(1, 4000);
-//            }
+            tape_r_prev = tape_r;
             break;
         case STATE_NAV_LINE_LEFT:
-            printf("LINE_LEFT\n");
+            printf("LINE_LEFT\n");            
             TankDrive(
                 tape_fl ? SLOW : 0,         // if LEFT  is WHITE, turn LEFT  drive OFF
                 !tape_fr ? SLOW : 0           // if RIGHT is BLACK, turn RIGHT drive OFF
             );
             
+            if (timer_expired && tape_sr) {
+                MecanumDrive(0, 0, 0);
+                substate = STATE_NAV_FIN;
+                TIMERS_InitTimer(1, 4000);
+                break;
+            }
+            
             if (obs1_detected || obs2_detected) {
                 printf("Hit object. Jumping right..\n");
                 substate = STATE_NAV_DELAY;
-                TIMERS_InitTimer(1, 200);
-                MecanumDrive(0, 0, -SLOW * 0.7);
+                TIMERS_InitTimer(1, 300);
+                MecanumDrive(0, 0, -SLOW * 0.8);
                 queued_state = STATE_NAV_JUMP_RIGHT;
+                break;
             }
             
-//            if ((!tape_fl && !tape_fr && tape_r && tape_sr) || (tape_fl && tape_fr && !tape_r)) {
-//                MecanumDrive(0, -MEDIUM , 0);
-//                substate = STATE_NAV_FIN;
-//                TIMERS_InitTimer(1, 4000);
-//            }
-            
+            tape_r_prev = tape_r;
             break;
         case STATE_NAV_JUMP_RIGHT:
-            MecanumDriveRescale(0, timer_expired ? -MEDIUM : -jump_speed, 0, 0);
+            DriveRight(timer_expired ? SLOW : MEDIUM);
             printf("Jumping right: %d\n", jump_speed);
             if (timer_expired && (tape_fr || tape_r)) {
                 queued_state = STATE_NAV_LINE_RIGHT;
@@ -404,7 +376,7 @@ uint8_t RunStateNav(void) {
             }
             break;
         case STATE_NAV_JUMP_LEFT:
-            MecanumDriveRescale(0, timer_expired ? MEDIUM : jump_speed, -15, 0);
+            DriveLeft(timer_expired ? SLOW : MEDIUM);
             printf("Jumping left: %d\n", jump_speed);
             if (timer_expired && (tape_fl || tape_r)) {
                 queued_state = STATE_NAV_LINE_LEFT;
@@ -419,15 +391,13 @@ uint8_t RunStateNav(void) {
                 substate = queued_state;
 
                 if (
-                    queued_state == STATE_NAV_JUMP_LEFT
-                ) {
-                    accel_start_time = TIMERS_GetTime() - 300;
-                    TIMERS_InitTimer(1, 4000);
-                } else if (
+                    queued_state == STATE_NAV_JUMP_LEFT ||
                     queued_state == STATE_NAV_JUMP_RIGHT
                 ) {
                     accel_start_time = TIMERS_GetTime() - 300;
-                    TIMERS_InitTimer(1, 4000);
+                    TIMERS_InitTimer(1, queued_state == STATE_NAV_JUMP_LEFT ? 3500 : 4000);
+                } else {
+                    TIMERS_InitTimer(1, 1000);
                 }
             }
             break;
@@ -441,6 +411,8 @@ uint8_t RunStateNav(void) {
         default:
             break;
     }
+
+    tape_r_prev = tape_r;
 
     return 0;
 }
@@ -466,8 +438,6 @@ uint8_t RunStateShoot(void) {
         TIMERS_InitTimer(5, 4000); // seek for atleast 4s
     }
     
-    
-    double beacon = ReadBeaconSensor1();
 //    printf("beacon=%2f thresh=%2f\n", beacon, max_thresh);
     switch (substate) {
         case STATE_SHOOT_SEEK:
@@ -475,7 +445,7 @@ uint8_t RunStateShoot(void) {
             if (beacon > max_thresh && TIMERS_IsTimerExpired(4) == TIMER_EXPIRED) {
                 printf("Seek step... reached %2f... speed %d\n", max_thresh, seek_speed);
                 max_thresh += 0.05;
-                seek_speed = 800 - (300 * ((max_thresh - 1.5) / 1));
+                seek_speed = 800 - (300 * ((max_thresh - 1.5) / .6));
                 
                 // far scalefactor   = 0.6 ----- max measurement = 2.15
                 // mid scalefactor   = 1.2 ----- max measurement = 2.25
