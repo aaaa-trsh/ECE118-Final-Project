@@ -43,8 +43,8 @@ extern DriveMotorIOConstants DRIVE_FRONT_LEFT;
 #define OBSTACLE_2_PORT    PORTV
 #define OBSTACLE_2_PIN     PIN6
 
-#define AD_BEACON_1         AD_PORTW8
-#define AD_BEACON_2         AD_PORTW7
+#define AD_BEACON_1         AD_PORTW7
+#define AD_BEACON_2         AD_PORTW8
 
 #ifdef __cplusplus
 }

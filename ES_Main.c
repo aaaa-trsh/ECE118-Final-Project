@@ -30,13 +30,13 @@ uint8_t SeekBeacon(int initialize, double target_thresh);
 
 #define DO_STATE_MACHINE
 
-#define INITIAL_THRESH          1.5
+#define INITIAL_THRESH          1.3
 
 // !!!!!!!!!!! BEACON DEFINES !!!!!!!!!!!
-#define TARGET_THRESH           3.6
-#define WIDE_ALIGN_THRESH       2.1
-#define NARROW_ALIGN_THRESH     2.4
-#define FILTER_SIZE             40
+#define TARGET_THRESH           1.6
+#define WIDE_ALIGN_THRESH       1.6
+#define NARROW_ALIGN_THRESH     2
+#define FILTER_SIZE             10
 
 static uint8_t tape_fr = 0;
 static uint8_t tape_fl = 0;
@@ -471,7 +471,7 @@ uint8_t RunStateShoot(void) {
                 
                 if (ignore_timer_done && max_thresh > INITIAL_THRESH) {
                     printf("Resetting timer\n");
-                    TIMERS_InitTimer(6, 1000); // wait for stillness for 2s, then transition
+                    TIMERS_InitTimer(6, 2000); // wait for stillness for 2s, then transition
                 }
             }
             
@@ -488,10 +488,10 @@ uint8_t RunStateShoot(void) {
             break;
         case STATE_SHOOT_SPRAY:
 //            printf("Seek spray dir=%d\n", direction);
-             MecanumDrive(0, 0, 800);
-             if (TIMERS_IsTimerExpired(3) == TIMER_EXPIRED) {
-                 MecanumDrive(0, 0, 0);
-             }
+//             MecanumDrive(0, 0, 800);
+//             if (TIMERS_IsTimerExpired(3) == TIMER_EXPIRED) {
+//                 MecanumDrive(0, 0, 0);
+//             }
 
             // turn indexer on only after 5 seconds elapsed since entering shooting
             if (TIMERS_IsTimerExpired(7) == TIMER_EXPIRED) {
@@ -499,7 +499,7 @@ uint8_t RunStateShoot(void) {
 //                    indexer_on = !indexer_on;
 //                    TIMERS_InitTimer(2, 20);
 //                }
-                printf("INDEX");
+//                printf("INDEX");
                 SetIndexer(1);
             }
 
